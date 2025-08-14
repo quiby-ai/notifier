@@ -1,0 +1,16 @@
+[http]
+addr = ":8888"
+allowed_origins = [] # empty array says it allows any origin
+
+[kafka]
+brokers = ["kafka:9092"]
+group_id = "notifier"
+topic = "saga.orchestrator.state.changed"
+
+[ws]
+ping_interval_sec = 20
+write_timeout_sec = 10
+max_message_bytes = 1048576
+
+[security]
+require_auth = false
