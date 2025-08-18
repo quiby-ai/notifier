@@ -2,11 +2,13 @@ package ws
 
 import (
 	"context"
-	"github.com/quiby-ai/notifier/config"
-	"github.com/quiby-ai/notifier/internal/registry"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/quiby-ai/common/pkg/events"
+	"github.com/quiby-ai/notifier/config"
+	"github.com/quiby-ai/notifier/internal/registry"
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
@@ -32,10 +34,10 @@ type Client struct {
 	conn   *websocket.Conn
 	hub    *registry.Hub
 	sagaID string
-	send   chan registry.KafkaEvent
+	send   chan events.Envelope[events.StateChanged]
 }
 
-func (c *Client) Enqueue(evt registry.KafkaEvent) {
+func (c *Client) Enqueue(evt events.Envelope[events.StateChanged]) {
 	select {
 	case c.send <- evt:
 	default: /* drop if slow */
@@ -64,7 +66,7 @@ func WSHandler(h *registry.Hub, cfg config.Config) http.Handler {
 
 		c := &Client{
 			conn: conn, hub: h, sagaID: sagaID,
-			send: make(chan registry.KafkaEvent, 128),
+			send: make(chan events.Envelope[events.StateChanged], 128),
 		}
 		h.Register(sagaID, c)
 		defer func() {

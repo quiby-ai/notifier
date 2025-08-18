@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	cfg := config.MustLoadConfig()
+	cfg := config.Load()
 
 	hub := registry.NewHub(cfg)
 	go hub.Run()
@@ -29,7 +29,9 @@ func main() {
 	mux.Handle("/ws", ws.WSHandler(hub, cfg))
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(200)
-		w.Write([]byte("OK"))
+		if _, err := w.Write([]byte("OK")); err != nil {
+			log.Printf("healthz write error: %v", err)
+		}
 	})
 
 	srv := &http.Server{Addr: cfg.HTTP.Addr, Handler: mux}

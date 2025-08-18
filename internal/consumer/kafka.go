@@ -3,10 +3,12 @@ package consumer
 import (
 	"context"
 	"encoding/json"
+	"log"
+
+	"github.com/quiby-ai/common/pkg/events"
 	"github.com/quiby-ai/notifier/config"
 	"github.com/quiby-ai/notifier/internal/registry"
 	"github.com/segmentio/kafka-go"
-	"log"
 )
 
 // KafkaConsumer reads from the configured topic and forwards matching events to the Hub.
@@ -36,7 +38,11 @@ func (c *KafkaConsumer) Run(ctx context.Context) {
 	}
 
 	r := kafka.NewReader(rc)
-	defer r.Close()
+	defer func() {
+		if err := r.Close(); err != nil {
+			log.Printf("kafka reader close error: %v", err)
+		}
+	}()
 
 	for {
 		m, err := r.FetchMessage(ctx)
@@ -48,7 +54,8 @@ func (c *KafkaConsumer) Run(ctx context.Context) {
 			continue
 		}
 
-		var evt registry.KafkaEvent
+		// var evt registry.KafkaEvent
+		var evt events.Envelope[events.StateChanged]
 		if err := json.Unmarshal(m.Value, &evt); err != nil {
 			log.Printf("kafka bad json: %v", err)
 			_ = r.CommitMessages(ctx, m)
@@ -56,7 +63,7 @@ func (c *KafkaConsumer) Run(ctx context.Context) {
 		}
 
 		// Route only saga state changes (extra guard).
-		if evt.Type == "saga.orchestrator.state.changed" && evt.SagaID != "" {
+		if evt.Type == events.SagaStateChanged && evt.SagaID != "" {
 			c.hub.Publish(evt)
 		}
 

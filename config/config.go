@@ -32,7 +32,7 @@ type Config struct {
 	Security SecCfg  `mapstructure:"security"`
 }
 
-func MustLoadConfig() Config {
+func Load() Config {
 	v := viper.New()
 
 	v.SetConfigName("config")

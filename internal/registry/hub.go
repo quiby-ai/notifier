@@ -1,27 +1,24 @@
 package registry
 
 import (
-	"github.com/quiby-ai/notifier/config"
-	"github.com/quiby-ai/notifier/internal/ws"
 	"sync"
+
+	"github.com/quiby-ai/common/pkg/events"
+	"github.com/quiby-ai/notifier/config"
 )
 
-type KafkaEvent struct {
-	MessageID string         `json:"message_id,omitempty"`
-	TraceID   string         `json:"trace_id,omitempty"`
-	SagaID    string         `json:"saga_id"`
-	Type      string         `json:"type"`
-	Payload   map[string]any `json:"payload"`
-	Meta      map[string]any `json:"meta,omitempty"`
+// Client interface defines what a WebSocket client must implement
+type Client interface {
+	Enqueue(evt events.Envelope[events.StateChanged])
 }
 
 type Hub struct {
 	cfg config.Config
 
 	mu     sync.RWMutex
-	bySaga map[string]map[*ws.Client]struct{} // saga_id -> clients
+	bySaga map[string]map[Client]struct{} // saga_id -> clients
 
-	broadcast chan KafkaEvent
+	broadcast chan events.Envelope[events.StateChanged]
 	quit      chan struct{}
 }
 
@@ -29,8 +26,8 @@ type Hub struct {
 func NewHub(cfg config.Config) *Hub {
 	return &Hub{
 		cfg:       cfg,
-		bySaga:    make(map[string]map[*ws.Client]struct{}),
-		broadcast: make(chan KafkaEvent, 1024),
+		bySaga:    make(map[string]map[Client]struct{}),
+		broadcast: make(chan events.Envelope[events.StateChanged], 1024),
 		quit:      make(chan struct{}),
 	}
 }
@@ -53,11 +50,11 @@ func (h *Hub) Run() {
 }
 
 // Register adds a client under a saga_id.
-func (h *Hub) Register(sagaID string, c *ws.Client) {
+func (h *Hub) Register(sagaID string, c Client) {
 	h.mu.Lock()
 	set, ok := h.bySaga[sagaID]
 	if !ok {
-		set = make(map[*ws.Client]struct{})
+		set = make(map[Client]struct{})
 		h.bySaga[sagaID] = set
 	}
 	set[c] = struct{}{}
@@ -65,7 +62,7 @@ func (h *Hub) Register(sagaID string, c *ws.Client) {
 }
 
 // Unregister removes a client from a saga_id set.
-func (h *Hub) Unregister(sagaID string, c *ws.Client) {
+func (h *Hub) Unregister(sagaID string, c Client) {
 	h.mu.Lock()
 	if set, ok := h.bySaga[sagaID]; ok {
 		delete(set, c)
@@ -77,7 +74,7 @@ func (h *Hub) Unregister(sagaID string, c *ws.Client) {
 }
 
 // Publish queues an event for fanout to all clients on that saga_id.
-func (h *Hub) Publish(evt KafkaEvent) {
+func (h *Hub) Publish(evt events.Envelope[events.StateChanged]) {
 	select {
 	case h.broadcast <- evt:
 	default:
@@ -86,4 +83,6 @@ func (h *Hub) Publish(evt KafkaEvent) {
 	}
 }
 
-func (h *Hub) Close() { close(h.quit) }
+func (h *Hub) Close() {
+	close(h.quit)
+}
