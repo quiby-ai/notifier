@@ -7,7 +7,6 @@ import (
 	"github.com/quiby-ai/notifier/config"
 )
 
-// Client interface defines what a WebSocket client must implement
 type Client interface {
 	Enqueue(evt events.Envelope[events.StateChanged])
 }
@@ -22,7 +21,6 @@ type Hub struct {
 	quit      chan struct{}
 }
 
-// NewHub constructs the in-memory connection registry and broadcast loop.
 func NewHub(cfg config.Config) *Hub {
 	return &Hub{
 		cfg:       cfg,
@@ -32,7 +30,6 @@ func NewHub(cfg config.Config) *Hub {
 	}
 }
 
-// Run handles fanout for published events until Close() is called.
 func (h *Hub) Run() {
 	for {
 		select {
@@ -49,7 +46,6 @@ func (h *Hub) Run() {
 	}
 }
 
-// Register adds a client under a saga_id.
 func (h *Hub) Register(sagaID string, c Client) {
 	h.mu.Lock()
 	set, ok := h.bySaga[sagaID]
@@ -61,7 +57,6 @@ func (h *Hub) Register(sagaID string, c Client) {
 	h.mu.Unlock()
 }
 
-// Unregister removes a client from a saga_id set.
 func (h *Hub) Unregister(sagaID string, c Client) {
 	h.mu.Lock()
 	if set, ok := h.bySaga[sagaID]; ok {
@@ -73,12 +68,11 @@ func (h *Hub) Unregister(sagaID string, c Client) {
 	h.mu.Unlock()
 }
 
-// Publish queues an event for fanout to all clients on that saga_id.
 func (h *Hub) Publish(evt events.Envelope[events.StateChanged]) {
 	select {
 	case h.broadcast <- evt:
 	default:
-		// backpressure: channel full; drop oldest by recreating or just log
+		// TODO: backpressure: channel full; drop oldest by recreating or just log
 		// keep it simple for now (best-effort).
 	}
 }

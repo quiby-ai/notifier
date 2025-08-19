@@ -74,7 +74,6 @@ func WSHandler(h *registry.Hub, cfg config.Config) http.Handler {
 			_ = conn.Close(websocket.StatusNormalClosure, "bye")
 		}()
 
-		// writer
 		go func() {
 			pingInt := time.Duration(cfg.WS.PingIntervalSec) * time.Second
 			writeTO := time.Duration(cfg.WS.WriteTimeoutSec) * time.Second
@@ -95,7 +94,6 @@ func WSHandler(h *registry.Hub, cfg config.Config) http.Handler {
 			}
 		}()
 
-		// reader (drain) — detects close
 		for {
 			_, _, err := c.conn.Read(r.Context())
 			if err != nil {

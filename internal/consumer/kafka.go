@@ -11,7 +11,6 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-// KafkaConsumer reads from the configured topic and forwards matching events to the Hub.
 type KafkaConsumer struct {
 	cfg config.Config
 	hub *registry.Hub
@@ -29,8 +28,6 @@ func (c *KafkaConsumer) Run(ctx context.Context) {
 		MaxBytes: 10e6,
 	}
 
-	// If GroupID is set, we share work across instances.
-	// If empty, we read all messages (fan-out mode) from the beginning.
 	if c.cfg.Kafka.GroupID != "" {
 		rc.GroupID = c.cfg.Kafka.GroupID
 	} else {
@@ -54,7 +51,6 @@ func (c *KafkaConsumer) Run(ctx context.Context) {
 			continue
 		}
 
-		// var evt registry.KafkaEvent
 		var evt events.Envelope[events.StateChanged]
 		if err := json.Unmarshal(m.Value, &evt); err != nil {
 			log.Printf("kafka bad json: %v", err)
@@ -62,12 +58,10 @@ func (c *KafkaConsumer) Run(ctx context.Context) {
 			continue
 		}
 
-		// Route only saga state changes (extra guard).
 		if evt.Type == events.SagaStateChanged && evt.SagaID != "" {
 			c.hub.Publish(evt)
 		}
 
-		// Best-effort commit; if commit fails, Reader will re-fetch.
 		if err := r.CommitMessages(ctx, m); err != nil {
 			log.Printf("kafka commit error: %v", err)
 		}

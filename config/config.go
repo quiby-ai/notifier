@@ -2,7 +2,6 @@ package config
 
 import (
 	"log"
-	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -44,8 +43,6 @@ func Load() Config {
 	v.SetDefault("ws.write_timeout_sec", 10)
 	v.SetDefault("ws.max_message_bytes", 1048576)
 
-	v.SetEnvPrefix("NOTIFIER")
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
 	if err := v.ReadInConfig(); err != nil {
