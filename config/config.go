@@ -36,12 +36,7 @@ func Load() Config {
 
 	v.SetConfigName("config")
 	v.SetConfigType("toml")
-	v.AddConfigPath(".")
-
-	v.SetDefault("http.addr", ":8888")
-	v.SetDefault("ws.ping_interval_sec", 20)
-	v.SetDefault("ws.write_timeout_sec", 10)
-	v.SetDefault("ws.max_message_bytes", 1048576)
+	v.AddConfigPath("/")
 
 	v.AutomaticEnv()
 
