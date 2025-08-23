@@ -47,14 +47,13 @@ func (c *KafkaConsumer) Run(ctx context.Context) {
 			continue
 		}
 
-		log.Printf("kafka message: %v", m)
-
 		var evt events.Envelope[events.StateChanged]
 		if err := json.Unmarshal(m.Value, &evt); err != nil {
 			log.Printf("kafka bad json: %v", err)
 			_ = r.CommitMessages(ctx, m)
 			continue
 		}
+		log.Printf("got message: %v", evt)
 
 		if evt.Type == events.SagaStateChanged && evt.SagaID != "" {
 			c.hub.Publish(evt)
