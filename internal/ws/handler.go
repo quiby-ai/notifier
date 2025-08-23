@@ -3,7 +3,6 @@ package ws
 import (
 	"context"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/quiby-ai/common/pkg/events"
@@ -13,22 +12,6 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 )
-
-func isAllowedOrigin(origin string, allowed []string) bool {
-	if origin == "" || len(allowed) == 0 {
-		return true // no restriction configured
-	}
-	u, err := url.Parse(origin)
-	if err != nil {
-		return false
-	}
-	for _, a := range allowed {
-		if a == origin || a == (u.Scheme+"://"+u.Host) {
-			return true
-		}
-	}
-	return false
-}
 
 type Client struct {
 	conn   *websocket.Conn
@@ -46,10 +29,7 @@ func (c *Client) Enqueue(evt events.Envelope[events.StateChanged]) {
 
 func WSHandler(h *registry.Hub, cfg config.Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !isAllowedOrigin(r.Header.Get("Origin"), cfg.HTTP.AllowedOrigins) {
-			http.Error(w, "forbidden origin", http.StatusForbidden)
-			return
-		}
+		// TODO: check origin
 
 		sagaID := r.URL.Query().Get("saga_id")
 		if sagaID == "" {
