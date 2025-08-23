@@ -29,16 +29,15 @@ func (c *Client) Enqueue(evt events.Envelope[events.StateChanged]) {
 
 func WSHandler(h *registry.Hub, cfg config.Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// TODO: check origin
-
 		sagaID := r.URL.Query().Get("saga_id")
 		if sagaID == "" {
 			http.Error(w, "missing saga_id", http.StatusBadRequest)
 			return
 		}
 
+		// TODO: add origin validation
 		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-			// Do NOT set InsecureSkipVerify; we check Origin above
+			InsecureSkipVerify: true,
 		})
 		if err != nil {
 			return
