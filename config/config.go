@@ -13,7 +13,6 @@ type HTTPCfg struct {
 type KCfg struct {
 	Brokers []string `mapstructure:"brokers"`
 	GroupID string   `mapstructure:"group_id"`
-	Topic   string   `mapstructure:"topic"`
 }
 type WSCfg struct {
 	PingIntervalSec int `mapstructure:"ping_interval_sec"`

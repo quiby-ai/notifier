@@ -21,20 +21,16 @@ func NewKafkaConsumer(cfg config.Config, hub *registry.Hub) *KafkaConsumer {
 }
 
 func (c *KafkaConsumer) Run(ctx context.Context) {
-	rc := kafka.ReaderConfig{
-		Brokers:  c.cfg.Kafka.Brokers,
-		Topic:    c.cfg.Kafka.Topic,
-		MinBytes: 1,
-		MaxBytes: 10e6,
-	}
-
-	if c.cfg.Kafka.GroupID != "" {
-		rc.GroupID = c.cfg.Kafka.GroupID
-	} else {
-		rc.StartOffset = kafka.FirstOffset
-	}
-
-	r := kafka.NewReader(rc)
+	r := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:               c.cfg.Kafka.Brokers,
+		GroupID:               c.cfg.Kafka.GroupID,
+		Topic:                 events.SagaStateChanged,
+		MinBytes:              1,
+		MaxBytes:              10e6,
+		CommitInterval:        0,
+		ReadLagInterval:       -1,
+		WatchPartitionChanges: true,
+	})
 	defer func() {
 		if err := r.Close(); err != nil {
 			log.Printf("kafka reader close error: %v", err)
@@ -50,6 +46,8 @@ func (c *KafkaConsumer) Run(ctx context.Context) {
 			log.Printf("kafka fetch error: %v", err)
 			continue
 		}
+
+		log.Printf("kafka message: %v", m)
 
 		var evt events.Envelope[events.StateChanged]
 		if err := json.Unmarshal(m.Value, &evt); err != nil {
